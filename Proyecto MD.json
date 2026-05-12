@@ -1,0 +1,211 @@
+{
+  "name": "Proyecto MD",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "2711253f-4f72-4ab1-9166-ca80221c740f",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "resource": "video",
+        "limit": 5,
+        "filters": {
+          "q": "\"Inteligencia Artificial\""
+        },
+        "options": {
+          "order": "relevance"
+        }
+      },
+      "type": "n8n-nodes-base.youTube",
+      "typeVersion": 1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "4426378d-92b8-4afb-8861-856c35f73181",
+      "name": "Get many videos",
+      "credentials": {
+        "youTubeOAuth2Api": {
+          "id": "0k1r1aCKKCrzV8Lf",
+          "name": "YouTube account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        416,
+        0
+      ],
+      "id": "991ad955-1f39-452a-8719-d8e47f622dcd",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Actúa como un analista experto en vigilancia tecnológica.\n\nAnaliza el siguiente contenido de YouTube:\n\nTítulo: {{$json[\"snippet\"][\"title\"]}}\nDescripción: {{$json[\"snippet\"][\"description\"]}}\nURL: https://www.youtube.com/watch?v={{$json[\"id\"][\"videoId\"]}}\n\nTu tarea:\n\n1. Genera un resumen ejecutivo claro, específico y útil (máximo 3 líneas).\n2. Evita generalidades como \"el video trata sobre...\".\n3. Identifica el enfoque real del contenido (tutorial, noticia, promoción, etc).\n4. Determina el sentimiento: Positivo, Neutro o Negativo.\n\nIMPORTANTE:\n- Responde SOLO en JSON válido\n- NO uses ``` ni texto adicional\n- NO expliques nada fuera del JSON\n\nFormato obligatorio:\n\n{\n  \"titulo\": \"{{$json[\"snippet\"][\"title\"]}}\",\n  \"url\": \"https://www.youtube.com/watch?v={{$json[\"id\"][\"videoId\"]}}\",\n  \"resumen\": \"texto aquí\",\n  \"sentimiento\": \"Positivo | Neutro | Negativo\"\n}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        640,
+        176
+      ],
+      "id": "7b15c1e4-d1f2-4f94-9ee6-bf18a4e3a5d0",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"titulo\": \"{{ $json.output ? JSON.parse($json.output.endsWith('}') ? $json.output : $json.output + '}').titulo : '' }}\",\n  \"url\": \"{{ $json.output ? JSON.parse($json.output.endsWith('}') ? $json.output : $json.output + '}').url : '' }}\",\n  \"resumen\": \"{{ $json.output ? JSON.parse($json.output.endsWith('}') ? $json.output : $json.output + '}').resumen : '' }}\",\n  \"sentimiento\": \"{{ $json.output ? JSON.parse($json.output.endsWith('}') ? $json.output : $json.output + '}').sentimiento : '' }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        624,
+        -96
+      ],
+      "id": "ba24a754-61c2-4e35-b0cc-4c87e653c668",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        544,
+        416
+      ],
+      "id": "6b9e5af0-6e94-4880-a2d6-7dc90bb2937a",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "8OZbVmnc5WYVQWKI",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        720,
+        416
+      ],
+      "id": "3fa15caa-6e22-47ff-b606-ec647d9ac3c1",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "PcDlOcQKVkuJn48Q",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get many videos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many videos": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "41d4408e-a8ec-42e5-ad54-c65f96c149de",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "75e728cc446b1082861e96a364c93c3facc29e956c6a6a261ad31f085b2e064f"
+  },
+  "id": "LayGNRS6Bqf57zJy",
+  "tags": []
+}
